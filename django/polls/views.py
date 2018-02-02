@@ -1,10 +1,10 @@
 from django.http import HttpResponse, Http404
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 
 # Create your views here.
 from django.template import loader
 
-from polls.models import Question
+from polls.models import Question, Choice
 
 
 def index(request):
@@ -40,5 +40,34 @@ def results(request, question_id):
     return HttpResponse(response % question_id)
 
 def vote(request, question_id):
-    return HttpResponse("You're voting on question %s." % question_id)
+    '''
+    1. request.POST의 choice키에 온 value를 HttpResonse로 출력
+    choice객체의 votes값을 1 증가시키고 DB에 저장
+    2. 이후 question_id에 해당하는 results뷰로 redirect
+    '''
+    choice_pk = request.POST['choice']
+    choice = Choice.objects.get(pk=choice_pk)
+    choice.votes += 1
+    choice.save()
 
+    return redirect(
+        'polls:results',
+        question_id=question_id
+    )
+
+def results(request, question_id):
+    '''
+    question_id에 해당하는 Question객체 한개를 넘김
+    polls/results.html에서
+    question에 속한 Choice들의 목록을 보여주면서
+    각 항목의 votes값을 출력
+
+    :param request:
+    :param question_id:
+    :return:
+    '''
+    question = Question.objects.get(pk=question_id)
+    context = {
+        'question': question
+    }
+    return render(request, 'polls/results.html', {'question':question})
